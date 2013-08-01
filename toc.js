@@ -10,18 +10,25 @@ for(var i = 1; i < 10; i++) {
     leftIndents.push(leftIndents[i-1] + FOUR_SPACES);
 }
 
-fs.readFile(process.argv[2], 'utf-8', function(err, data) {
-    if (err) {
-        throw err;
-    }
-    processData(data);
-});
+if (require.main === module) {
+  fs.readFile(process.argv[2], 'utf-8', function(err, data) {
+      if (err) {
+          throw err;
+      }
+      processData(data);
+  });
+}
 
-function processData(data) {
+function processData(data, out) {
     var lines = data.trimRight().split('\n');
 
+    var uri;
+    var title;
     var titles = [];
+    var titlesCount = {};
+
     var depths = [];
+
     var minDepth = 1000000;
     for(var i = 0; i < lines.length; i++) {
         var line = lines[i];
@@ -29,7 +36,21 @@ function processData(data) {
         if (!m) continue;
         minDepth = Math.min(minDepth, m[1].length);
         depths.push(m[1].length);
-        titles.push(m[2]);
+
+        title = m[2];
+        uri = titleToUrl(title);
+
+        if (titlesCount[title]) {
+          uri += '-' + titlesCount[title]++;
+        } else {
+          titlesCount[title] = 1;
+        }
+        titles.push({
+          title: title,
+          uri: uri
+        });
+
+        lines[i] = line + '<span id="' + uri +'"></span>';
     }
 
     for(var i = 0; i < depths.length; i++) {
@@ -45,8 +66,16 @@ function processData(data) {
             lines[i] = toc;
         }
     }
-    console.log(lines.join('\n'));
-    //console.log('\n');
+
+    var result = lines.join('\n');
+
+    if (require.main === module) {
+      console.log(result);
+    } else if (typeof out == 'string') {
+      fs.writeFileSync(result, out);
+    } else {
+      return result;
+    }
 }
 
 function createTOC(depths, titles) {
@@ -62,5 +91,7 @@ function titleToUrl(title) {
 }
 
 function tocLine(depth, title) {
-    return leftIndents[depth] + "- [" + title.trim() + "](#" + titleToUrl(title) + ")";
+    return leftIndents[depth] + "- [" + title.title.trim() + "](#" + title.uri + ")";
 }
+
+module.exports = processData;

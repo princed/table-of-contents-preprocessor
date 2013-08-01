@@ -19,6 +19,7 @@
     "README.md"
   ]
   , "bin": "./toc.js"
+  , "main": "toc"
   , "repository" : {
       "type" : "git"
     , "url" : "https://github.com/aslushnikov/table-of-contents-preprocessor"
